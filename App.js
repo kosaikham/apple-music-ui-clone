@@ -15,12 +15,63 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 export default class App extends React.Component {
   componentWillMount() {
     this.position = new Animated.ValueXY({ x: 0, y: SCREEN_HEIGHT - 90 });
+    this._panResponder = PanResponder.create({
+      onMoveShouldSetPanResponder: (e, gestureState) => true,
+      onPanResponderGrant: (e, gestureState) => {
+        //
+        this.position.extractOffset({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (e, gestureState) => {
+        //
+        this.position.setValue({ x: 0, y: gestureState.dy });
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        //
+        if (gestureState.dy < 0) {
+          Animated.spring(this.position.y, {
+            toValue: -SCREEN_HEIGHT + 120,
+            tension: 1
+          }).start();
+        } else if (gestureState.dy > 0) {
+          Animated.spring(this.position.y, {
+            toValue: SCREEN_HEIGHT - 120,
+            tension: 1
+          }).start();
+        } else {
+          //
+        }
+      }
+    });
   }
 
   render() {
     const animatedHeight = {
       transform: this.position.getTranslateTransform()
     };
+
+    const animatedImageHeight = this.position.y.interpolate({
+      inputRange: [0, SCREEN_HEIGHT - 90],
+      outputRange: [200, 32],
+      extrapolate: "clamp"
+    });
+
+    const animatedOpacity = this.position.y.interpolate({
+      inputRange: [0, SCREEN_HEIGHT - 500, SCREEN_HEIGHT - 90],
+      outputRange: [0, 0, 1],
+      extrapolate: "clamp"
+    });
+
+    const animatedImageMarginLeft = this.position.y.interpolate({
+      inputRange: [0, SCREEN_HEIGHT - 90],
+      outputRange: [SCREEN_WIDTH / 2 - 100, 10],
+      extrapolate: "clamp"
+    });
+
+    const animatedHeaderHeight = this.position.y.interpolate({
+      inputRange: [0, SCREEN_HEIGHT - 90],
+      outputRange: [SCREEN_HEIGHT / 2, 90],
+      extrapolate: "clamp"
+    });
 
     return (
       <Animated.View
@@ -34,7 +85,7 @@ export default class App extends React.Component {
             animatedHeight,
             {
               position: "absolute",
-              height: 80,
+              height: SCREEN_HEIGHT,
               left: 0,
               right: 0,
               backgroundColor: "white",
@@ -43,8 +94,9 @@ export default class App extends React.Component {
           ]}
         >
           <Animated.View
+            {...this._panResponder.panHandlers}
             style={{
-              height: 80,
+              height: animatedHeaderHeight,
               borderTopWidth: 1,
               borderTopColor: "#ebe5e5",
               flexDirection: "row",
@@ -54,7 +106,13 @@ export default class App extends React.Component {
             <View
               style={{ flex: 4, flexDirection: "row", alignItems: "center" }}
             >
-              <Animated.View style={{ width: 32, height: 32, marginLeft: 10 }}>
+              <Animated.View
+                style={{
+                  width: animatedImageHeight,
+                  height: animatedImageHeight,
+                  marginLeft: animatedImageMarginLeft
+                }}
+              >
                 <Image
                   source={require("./assets/songImage.jpeg")}
                   style={{
@@ -67,7 +125,7 @@ export default class App extends React.Component {
               </Animated.View>
               <Animated.Text
                 style={{
-                  opacity: 1,
+                  opacity: animatedOpacity,
                   fontSize: 18,
                   paddingLeft: 10
                 }}
@@ -78,7 +136,7 @@ export default class App extends React.Component {
             <Animated.View
               style={{
                 flex: 1,
-                opacity: 1,
+                opacity: animatedOpacity,
                 flexDirection: "row",
                 justifyContent: "space-around"
               }}
